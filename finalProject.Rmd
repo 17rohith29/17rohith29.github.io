@@ -1,0 +1,454 @@
+---
+title: "Final Project"
+---
+### Name: Rohith Prabakar
+### UID: 115653030
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+# inlcuding dependancies
+library(tidyverse)
+library(rvest)
+library(stringr)
+library(broom)
+```
+
+# Anime Analysis
+## Intro
+Hi there. I am Rohith, a rising junior at the University of Maryland College Park. This is my final project to my class CMSC 320 - Intro to Data Science. So might as well do something fun!
+
+I have long been an Anime buff, and I have watched hundreds of anime. However recently I have been having trouble finding good anime to watch. Many in the anime community give an anime 3 episodes until they decide if they want to watch it. I think 3 episodes is way too much time. 
+
+This got me thinking about the qualities that make an anime good and enjoyable.
+In this project, I want to analyze the data on the anime. I will also go over the data science techniques I will use, in the data analysis pipeline.
+
+### What is Anime?
+I'll give a brief intro to anime, for those who don't know about it.
+Anime (short form of animation) refers to Japanese cartoons. They have a unique style and are meant for all people (including adults).
+
+There are different genres of animes. The most popular
+are shonen - for young boys, seinin for adults, slice of life, Sci-fi, School, Music, Mystery......
+
+It turns out that anime is extremely popular in the engineering and computer science departments. Probably cause we sit at home in front of our computer. You don't need to buy DVDs to watch anime. There are services such as Crunchyroll (http://www.crunchyroll.com) and Netflix (https://www.netflix.com/) in which you can watch anime.
+
+Certain anime like Death Note become so popular that people construct live action films. However, historically this has been a terrible idea. Every anime fan feels sad when a new live-action is announced.
+
+You can learn more about anime from the Wikipedia page - https://en.wikipedia.org/wiki/Anime. 
+
+### Why should you care?
+This is just a fun project to analyze anime. However, that doesn't mean that is not important. The number of people who watch anime is increasing.
+
+<b> A quick Estimate of the number of people who watch anime:</b> The r/anime subreddit (https://www.reddit.com/r/anime) has 998K people subscribed. However, the anime Death Note has 1.7 million people who are members of myanimelist website(https://myanimelist.net/anime/1535/Death_Note). I would say that only a small fraction of people who watch anime use the aforementioned websites. If there are 6 times(a very conservative number), more people not using these websites that is 10 million people who watch anime.
+
+With so many people who watch anime, it is very important to find more data about anime. It is very rare that a medium which is watched by 10 million people has no data analysis. This project will help to change that.
+
+<b>Importance to Data Science</b>: There is a lot of data in regards to anime.
+https://myanimelist.net is a treasure trove of data. It is quite rare for a website to have a monopoly on the data. However, most of the anime community uses MyAnimeList. A lot of this data is not properly analyzed. In this project, we can use all the practices in data science to analyze the data. Moreover, I think that just analyzing data not done before is huge for data science.
+
+## Dataset - Data Curation, Parsing, and Management
+To analyze any topic we must first get datasets to do the analysis. In this project, we want to thoroughly analyze the topic. So we will be using 3 datasets.
+
+<ul>
+<li><b>First Data Set</b>: Our first dataset is from kaggle. Link to Dataset: https://www.kaggle.com/CooperUnion/anime-recommendations-database#anime.csv. The Dataset is from the website https://myanimelist.net/.
+This website allows users to rate different anime, and make lists of their favorite anime. We will use this data to get more insights into anime. </li>
+
+<li><b>Second Data Set</b>: We want to get the data about the number of anime are present for each genre. Website: https://myanimelist.net/anime.php. Unlike the First Data Set, we don't get a CSV file. We have to <b>scrape</b> the data from the website</li>
+
+<li><b>Third Data Set</b>: We want to get the data about the number of anime a given studio produces. Website: https://myanimelist.net/anime.php. Unlike the First Data Set, we dont get a csv file. We have to <b>scrape</b> the data from the website</li></ul>
+
+### Data Curation
+Data gathering is an important part of the data science pipeline. We must select good data to analyze.
+We can get it by either using a preexisting data set in the form of a csv or we can scrape websites to get the data. We will show you examples of both in the article. However, for more details, you can visit http://www.hcbravo.org/IntroDataSci/bookdown-notes/ingesting-data.html#csv-files-and-similar to learn more.
+Let us start by loading the data from the csv (<b>First Data Set</b>). <br>
+We will get some info by using the head functions.
+```{r}
+data <- read.csv("anime.csv") # reads the data from anime.csv file 
+head(data) # shows basic info about the data.
+```
+
+#### Scraping
+Now we want to get the data for <b>Second Data Set</b> and the <b>Third Data Set</b>.
+To do this we will scrape the website https://myanimelist.net/anime.php. Web scraping is the process of extracting data from a website. We will use rest library functions to get the data from the website.
+To learn more about web scraping please visit http://www.hcbravo.org/IntroDataSci/bookdown-notes/ingesting-data.html#scraping
+
+The information we want is the number of anime present in each genre(<b>Second Data Set</b>), and the number of anime produced by anime studio (<b>Third Data Set</b>).
+```{r warning=FALSE}
+url <- "https://myanimelist.net/anime.php"
+
+# Let us first get the data from the website using rvest functions.
+info <- url %>%
+  read_html() %>%
+  html_nodes(".genre-list.al") %>%
+  html_text() %>%
+  as_data_frame()
+
+head(info) # lets look at the data we collected.
+```
+
+### Tidying and Managing the data
+We now have data for both datasets. However, it is not in the proper form we want. The process to get the data in the form we want is known as tidying the data. We find that the data is currently one column of text. Let us split it into two columns. To learn more about tidying and management of data please visit http://www.hcbravo.org/IntroDataSci/bookdown-notes/tidying-data.html. The two columns are -
+
+1. A column about each individual genre or studio
+2. A column containing the numbers
+
+We use the stringr function (separate) to split it with the delimiter \\( .
+We will also split <b>Second Data Set</b> and <b>Third Data Set</b>. We will call them genre and studio respectively.
+```{r}
+# splitting the data into two columns for the second data set
+genre <- info %>%
+  slice(1:43) %>%
+  separate(value, c("Genre", "Number"), sep = " \\(") 
+
+# splitting the data into two columns for the third data set
+studio <- info %>%
+  slice(44:92) %>%
+  separate(value, c("Studio", "Number"), sep = " \\(") 
+```
+
+Let us Now remove the unwanted, and ) characters. We can do that by writing a function(remove_junk) so that we only need to do it once. We use stringr functions for this.
+```{r}
+# function to remove , and ) characters and return the modified string
+remove_junk <- function(str) {
+  res <- "" # creating a new string
+  for (char in strsplit(str, "")[[1]]) { # iterating through the input string
+    if (char != "," && char != ")") {
+      res = paste(res, char, sep = "") # adding the char to res if it is not , and )
+    }
+  }
+  res
+}
+```
+
+We will now call the function to the genre and studio dataset. We do it by using the sapply function.
+```{r}
+# calling the function remove junk to make the string look proper
+genre$Number <- sapply(genre$Number, remove_junk)
+studio$Number <- sapply(studio$Number, remove_junk)
+```
+
+We now want the number attribute to be an integer. So we call the mutate function to convert it to an integer. We will now look at the data too.
+```{r}
+# converting number to an integer.
+genre <- genre %>%
+  mutate(Number = as.integer(Number))
+
+studio <- studio %>%
+  mutate(Number = as.integer(Number))
+
+head(genre)
+head(studio)
+```
+
+<b>Let us Now clean up the First Data Set</b>: We need to convert the types such that it is useful to us.
+let us convert
+<ul>
+  <li>Name to a character</li>
+  <li>Episodes as an Integer</li>
+</ul>
+```{r}
+# This code does the above listed transformations
+data <- data %>%
+  mutate(name = as.character(name)) %>%
+  mutate(episodes = as.integer(episodes))
+```
+
+## Exploratory Data Analysis
+Explanatory data analysis is asking questions to understand more about the dataset or the problem.
+We use techniques such as plotting different graphs to accomplish this. To learn more about EDA(Explanatory data analysis) please visit - http://www.hcbravo.org/IntroDataSci/bookdown-notes/exploratory-data-analysis-visualization.html and http://www.hcbravo.org/IntroDataSci/bookdown-notes/exploratory-data-analysis-summary-statistics.html
+
+### Understanding the Data
+Now that we have the data, we want to understand what they mean.
+
+#### First Data Set
+|Attribute |Description |
+|---|---|
+|Anime Id|A unique Identification Number for the data|
+|name|full name of anime|
+|genre|comma separated list of genres for this anime|
+|type| Ex movie, TV, OVA, etc.|
+|episodes|how many episodes in this show. (1 if movie).|
+|rating|average rating out of 10 for this anime. The ratings are given out by the users of the website|
+|members|number of community members that are in this anime's "group"|
+
+#### Second Data Set - Genre
+|Attribute |Description |
+|---|---|
+|Genre| The different genre of anime|
+|Number| Number of anime for a given genre|
+
+#### Third Data Set - Studio
+|Attribute |Description |
+|---|---|
+|Studio| The different anime studios that produce anime|
+|Number| Number of anime for a given genre|
+
+### Analysis of the Data.
+Let us now analyze some data to get some insights. We will do this by asking and answering questions using data from the dataset. 
+
+<b>1. Let's try to find out the number of anime we have in the mal(first) data set</b>
+```{r}
+# Calculating the number of rows
+nrow(data)
+```
+
+We can see that we have 12294 anime listings in the dataset. If we estimate that there are 10 million anime users, then for every 100 people there is a new anime. However, we should take into account that most people watch multiple animes.
+
+<b>2. Let us try to find out the number of genres present in anime.</b>
+```{r}
+nrow(genre)
+```
+We can see that there are 43 genres.
+
+<b>3. Let us try to find out the number of anime studies present.</b>
+```{r}
+nrow(studio)
+```
+We can see that there are 49 animation studios.
+
+<b>4. Let's get the top five Studios based on the number of anime they have released </b>
+
+We will do it by first sorting the studio data set in descending order. Then we will take the first 5 in the dataset.
+```{r}
+# sorting studios in descending order
+top_five_studios <- studio %>%
+  arrange(-Number) %>%
+  # lets get the top ten using slice
+  slice(1:5)
+
+top_five_studios
+```
+
+<b>5. Let us now plot the top five studios in a graph</b>
+```{r}
+top_five_studios %>%
+  # plotting x as studio and y as number
+  ggplot(mapping = aes(x = Studio, y = Number)) +
+  geom_bar(stat="identity") + 
+  # giving better lables for x, y axis and the title.
+  labs(title = "Number of Anime for a given Studio (top 5)", x = "Names of Studios",
+       y = "Number of anime released")
+```
+
+This shows us that Toei Animation has the most number of anime that has been released. It is followed by sunrise. Everything else is a bit lower.
+
+<b>6.Let's get the top five Genres based on the number of anime of the genre</b>
+
+We will do it by first sorting the genre data set in descending order. Then we will take the first 5 in the dataset.
+```{r}
+# sorting genres in descending order
+top_five_genres <- genre %>%
+  arrange(-Number) %>%
+  # lets get the top ten using slice
+  slice(1:5)
+
+top_five_genres
+```
+
+<b>7. Let us now plot the top five genres in a graph</b>
+```{r}
+top_five_genres %>%
+  # plotting x as genres and y as number
+  ggplot(mapping = aes(x = Genre, y = Number)) +
+  geom_bar(stat="identity") + 
+  # giving better lables for x, y axis and the title.
+  labs(title = "Number of Anime for a given Genre (top 5)", x = "Genre",
+       y = "Number of anime")
+```
+
+This shows us that Comedy is the most Popular anime genre. Everything else is much lower. It would lead us to believe that the higher the popularity of a genre, the more people would like it as they are dependent on one another.
+
+<b>8. Let's find the relationship between the number of episodes in an anime and the rating.</b>
+
+We can do this by plotting a scatter plot. with the x-axis being the number of episodes and the y-axis being the rating. We again use ggplot.
+```{r}
+# plotting x-axis episode and y-axis rating
+data %>%
+  ggplot(mapping = aes(x = episodes, y = rating)) + 
+  geom_point() + # scatter plot
+  labs(x = "Number of Episodes", y = "Rating", title = "Plot of Ratings vs Episodes")
+```
+
+Unfortunately for us, there is a lot of noise in our data. This is because there are anime movies present in the dataset. Anime movies constitute One episode but are completely different from regular anime.
+So let us try that again, this time without movies included.
+```{r}
+# plotting x-axis episode and y-axis rating
+data %>%
+  filter(type == "TV") %>%
+  ggplot(mapping = aes(x = episodes, y = rating)) + 
+  geom_point() + # scatter plot
+  labs(x = "Number of Episodes", y = "Rating", title = "Plot of Ratings vs Episodes")
+```
+
+Again this plot does not give us much information, so let us use a box plot instead.
+We will split it based on episode range.
+```{r}
+# splitting it into 5 episode range
+data$episodeRange <- data$episodes %>%
+  cut(breaks = 5)
+
+# plotting x-axis episode and y-axis rating
+data %>%
+  filter(type == "TV") %>%
+  ggplot(mapping = aes(x = episodeRange, y = rating)) + 
+  geom_boxplot() + # boxplot
+  labs(x = "Number of Episodes", y = "Rating", title = "Plot of Ratings vs Episodes")
+```
+
+There is no difference between the ratings depending on the number of episodes. But we do need to notice a slight decrease in quality for longer running anime.
+
+<b>9. Let's find the relationship between popularity(num of members) of an anime and the number of episodes</b>
+
+We will do this again by making a plot with ggplot. Here the x-axis will be the number of episodes, and the y-axis will be the popularity. We will do a scatter plot. Will again only include anime as TV episodes.
+```{r}
+# plotting x-axis episode and y-axis members.
+data %>%
+  filter(type == "TV") %>%
+  ggplot(mapping = aes(x = episodes, y = members)) + 
+  geom_point() + # scatter plot
+  labs(x = "Number of Episodes", y = "Number of Members", title = "Plot of Episodes vs Popularity")
+```
+
+So we can see that animes around the 100 episodes mark are very popular. Animes that are around 25 episodes are also very popular. I think that the reason is that if there are too many episodes then that acts as a barrier of entry. Because of this most anime are 25 episodes. However, as of late, there are a lot of animes that are about 12 episodes. This is because there is a recent trend towards seasonal anime. That is a year is split into four seasons - fall, winter, summer, spring. Each season animation studios try to release some anime that are 12 episodes. If they are good then they are continued for another season. This helps animation studios to refrain from ending animes prematurely cause they are bad.
+
+<b>10. Let's find the relationship between popularity(num of members) and the ratings of anime</b>
+
+We will again do this by using ggplot. We will do a scatter plot to find if some relationship exists. the x-axis will be the ratings and the y-axis will be the number of members.
+```{r}
+# plotting x-axis ratings and y-axis members
+data %>%
+  filter(type == "TV") %>%
+  ggplot(mapping = aes(x = rating, y = members)) + 
+  geom_point() + # scatter plot
+  labs(x = "Ratings", y = "Number of Members", title = "Plot of Ratings vs Popularity")
+```
+
+This plot clearly shows that higher ratings lead to more popularity. Let us try to get a line graph to better visualize the trend. We will use geom_smooth to get the line graph.
+
+```{r}
+# plotting x-axis ratings and y-axis members
+data %>%
+  filter(type == "TV") %>%
+  ggplot(mapping = aes(x = rating, y = members)) + 
+  geom_smooth() + # fitting a smooth line plot
+  labs(x = "Ratings", y = "Number of Members", title = "Plot of Ratings vs Popularity")
+```
+
+Let's try to delve deeper into the reasons as to why the popularity increases as the rating increase. This is because better animes get higher ratings. When someone asks for anime recommendations, people would usually suggest the best anime. As the number of people who watch more than a few anime is so much lower than the occasional anime watcher, the less good anime (anime with lower rating) get fewer watches.
+
+## Machine Learning and Hypothesis testing
+In the previous section, we have figured out that the ratings and popularity might be related.
+Let us try to use machine learning models to find out their relationship. Machine learning is the process of finding a relationship between data by using certain models. Example of models is linear regression, K Nearest Neighbors and Random Forests. We will analyze our data using linear regression and polynomial regression. To learn more about machine learning please visit http://www.hcbravo.org/IntroDataSci/bookdown-notes/part-machine-learning.html to learn more.
+
+### Linear Regression
+Let us fit a regression line between the popularity and ratings. Linear regression is trying to put the best line such that the sum of the squared distance between the points is minimized. we will use the lm function to get the linear model. To learn more about linear regression please visit - http://www.hcbravo.org/IntroDataSci/bookdown-notes/linear-regression.html
+
+```{r}
+# let us fit a linear model. members as a function of rating.
+fittedLine <- lm(members ~ rating, data)
+```
+
+Let us look at the model using the tidy function in R
+
+```{r}
+tidy(fittedLine)
+fitted_data <- augment(fittedLine, data) # let us add it to the data
+```
+
+<b> Hypothesis Testing </b>
+Hypothesis testing tells us if our hypothesis is correct or not. The status quo is called the null hypothesis.
+For this problem, we keep the null hypothesis as rating does not influence popularity. Or the rating estimate is not different from 0.
+To check it we have a threshold called alpha. If it is greater than alpha we fail to reject the null hypothesis. Else we reject the null hypothesis.
+A common alpha is 0.05.
+Let us see if the rating value is significantly different from 0. We see that the p-value is less than the alpha of 0.05 hence the value is significantly different from 0. Thus we reject the null hypothesis.
+
+<b>Let us now plot reseduals for ratings as a violin plot</b>
+```{r}
+# plotting x axis as episodes and y axis as .resedual values.
+fitted_data %>%
+ggplot(mapping = aes(x = rating, y = .resid)) + geom_violin() +
+labs(title="Resedual of model", x = "ratings",
+         y = "Residuals for popularities computed by rating model")
+```
+
+This shows that the linear model is fairly decent and there is a relationship between ratings and popularity.
+
+Let us now look how that linear model looks like. We will do it by using ggplot again. We will use a line plot.
+```{r}
+# plotting x axis as episodes and y axis as .fitted values.
+fitted_data %>%
+ggplot(mapping = aes(x = rating, y = .fitted)) + geom_line() +
+labs(title="Linear Model visualized", x = "ratings",
+         y = "Fitted values for popularity")
+```
+
+This shows that the model is not perfect. It was not a linear increase
+
+### Polynomial regression
+This time we will fit a model that is not linear. A polynomial regression line is similar to linear regression, with the difference is that the graph can have a degree of n where n is some natural number.
+
+let us try to fit the graph as a cubic function.
+```{r}
+# let us fit a polynomial model. members as a function of rating.
+polyFittedLine <- lm(members ~ rating + I(rating^2) + I(rating^3), data)
+```
+
+Let us look at the model using the tidy function in R
+
+```{r}
+tidy(fittedLine)
+newFitted_data <- augment(polyFittedLine, data) # let us add it to the data
+```
+
+<b> Hypothesis Testing </b>
+Hypothesis testing tells us if our hypothesis is correct or not. The status quo is called the null hypothesis.
+For this problem, we keep the null hypothesis as rating does not influence popularity. Or the rating estimate is not different from 0.
+To check it we have a threshold called alpha. If it is greater than alpha we fail to reject the null hypothesis. Else we reject the null hypothesis.
+A common alpha is 0.05.
+Let us see if the rating value is significantly different from 0. We see that the p-value is less than the alpha of 0.05 hence the value is significantly different from 0. Thus we reject the null hypothesis.
+
+<b>Let us now plot reseduals for ratings as a violin plot</b>
+```{r}
+# plotting x axis as ratings and y axis as .resedual values.
+newFitted_data %>%
+ggplot(mapping = aes(x = rating, y = .resid)) + geom_violin() +
+labs(title="Resedual of model", x = "ratings",
+         y = "Residuals for popularities computed by rating model")
+```
+
+This shows that the polynomial model is a good model and there is a relationship between ratings and popularity.
+
+Let us now look how that polynomial model looks like. We will do it by using ggplot again. We will use a line plot.
+```{r}
+# plotting x axis as ratings and y axis as .fitted values.
+newFitted_data %>%
+ggplot(mapping = aes(x = rating, y = .fitted)) + geom_smooth() +
+labs(title="Polynomial Model visualized", x = "ratings",
+         y = "Fitted values for popularity")
+```
+
+### Let us compare linear and polynomial regression model
+We will use the F test and the anova function to do so.
+```{r}
+anova(fittedLine, polyFittedLine, test="F")
+```
+
+If we look at the anova table we see that that the p-value indicates a significant improvement over the linear model without interaction. It is an improvement as the RSS is lower for the polynomial model. This shows us that the new model is significantly better than the old one. This is because the graph was not a linear one.
+
+## Overall Understanding of data
+We have learned a lot about anime in this short tutorial.
+Anime is a rich medium with a lot of different genres and is produced by many different studios.
+Anime is just like movies from Hollywood, each with their own unique character and style.
+
+Throughout the tutorial <b>we have learned that</b>
+
+1. Top 5 anime studios that produce animation are - Toei Animation, Sunrise, Madhouse, Production I.G, J.C.Staff
+2. Top 5 anime genres are Comedy, Action, Fantasy, Adventure, and Sci-Fi. Comedy is very popular compared with the rest. It would lead us to believe that more popular anime and the most appreciated anime are from these genres.
+3. Ratings and the number of episodes are not that related. There is a slight dip in the ratings of longer running anime.
+4. Anime around 25 and 100 episode mark are the most popular. But other than that there is no major correlation between the number of episodes and the ratings.
+5. The popularity of an anime increases with its rating, which makes a lot of sense. However, there is a much bigger increase for anime with the highest ratings. A cubic regression curve gives a good approximation of the function.
+
+This brings us to the end of this piece. I would recommend you to get out of your comfort zones and start watching some anime. Anime has a long testing face, that it needs to overcome to be produced. It first requires good source material (manga or Japanese comics). Then it requires a good team to make the anime great. So I hope that you will also try and watch some anime.
+
+## Thanks For Reading.
